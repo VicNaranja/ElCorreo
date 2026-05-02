@@ -1,0 +1,35 @@
+══════════════════════════════════════════
+  EL CORREO NEWS — Digest Diario
+══════════════════════════════════════════
+
+REQUISITO: Python 3.9+ instalado en el sistema.
+Descarga: https://www.python.org/downloads/
+
+──────────────────────────────────────────
+OPCIÓN A — Ejecutar en modo desarrollo
+──────────────────────────────────────────
+1. Haz doble clic en "iniciar.bat"
+2. Se abrirá el navegador en http://localhost:5000
+3. Pulsa Ctrl+C en la consola para detener
+
+──────────────────────────────────────────
+OPCIÓN B — Generar ElCorreo.exe (standalone)
+──────────────────────────────────────────
+1. Haz doble clic en "build.bat"
+2. Espera unos minutos (primera vez más lento)
+3. El exe estará en la carpeta "dist\"
+4. Copia "dist\ElCorreo.exe" donde quieras
+5. Haz doble clic para abrirlo (sin Python ni nada)
+
+──────────────────────────────────────────
+ESTRUCTURA DEL PROYECTO
+──────────────────────────────────────────
+app.py          → Servidor Flask (proxy de imágenes incluido)
+scraper.py      → Extracción de noticias por secciones
+templates/      → Frontend HTML
+static/         → CSS y JavaScript
+requirements.txt → Dependencias Python
+build.bat       → Genera el .exe con PyInstaller
+iniciar.bat     → Modo desarrollo (sin compilar)
+
+══════════════════════════════════════════
