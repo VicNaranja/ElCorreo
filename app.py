@@ -31,6 +31,24 @@ else:
 sys.path.insert(0, BASE_DIR)
 from scraper import get_all_sections
 
+# ── Caché en memoria ─────────────────────────────────────────────────────────
+CACHE_MINUTOS = 5
+_cache_data = None
+_cache_timestamp = 0
+
+def get_noticias_cached():
+    global _cache_data, _cache_timestamp
+    ahora = time.time()
+    if _cache_data is None or (ahora - _cache_timestamp) > CACHE_MINUTOS * 60:
+        print("[cache] Actualizando noticias...")
+        _cache_data = get_all_sections()
+        _cache_timestamp = ahora
+        print("[cache] Listo.")
+    else:
+        restante = int(CACHE_MINUTOS * 60 - (ahora - _cache_timestamp))
+        print(f"[cache] Sirviendo cache ({restante}s restantes)")
+    return _cache_data
+
 # ── Flask app ────────────────────────────────────────────────────────────────
 app = Flask(
     __name__,
@@ -61,7 +79,7 @@ def index():
 def noticias():
     """Devuelve todas las secciones con sus artículos en JSON."""
     try:
-        data = get_all_sections()
+        data = get_noticias_cached()
         return jsonify({'ok': True, 'secciones': data})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500

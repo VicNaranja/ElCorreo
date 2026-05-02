@@ -130,19 +130,33 @@ def scrape_section(section):
 
 
 def get_all_sections():
-    """Extrae todas las secciones y devuelve la estructura completa."""
-    result = []
-    for s in SECTIONS:
+    """Extrae todas las secciones en paralelo y devuelve la estructura completa."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def fetch(s):
         print(f"[scraper] Extrayendo {s['name']}...")
         arts = scrape_section(s)
         print(f"[scraper]   -> {len(arts)} articulos")
-        result.append({
+        return s, arts
+
+    # Lanzar todas las secciones a la vez (máx 6 hilos simultáneos)
+    results_map = {}
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(fetch, s): s for s in SECTIONS}
+        for future in as_completed(futures):
+            s, arts = future.result()
+            results_map[s['id']] = arts
+
+    # Devolver en el orden original
+    return [
+        {
             'id':    s['id'],
             'name':  s['name'],
             'color': s['color'],
-            'arts':  arts,
-        })
-    return result
+            'arts':  results_map.get(s['id'], []),
+        }
+        for s in SECTIONS
+    ]
 
 
 if __name__ == '__main__':
