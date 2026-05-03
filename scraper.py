@@ -4,7 +4,6 @@ scraper.py — Extrae noticias de elcorreo.com por secciones
 import requests
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin
 
 # Regex para detectar y filtrar anuncios / contenido promocional
 AD_REGEX = re.compile(
@@ -16,7 +15,7 @@ AD_REGEX = re.compile(
 
 SECTIONS = [
     {'id': 'bizkaia',    'name': 'Bizkaia',       'url': 'https://www.elcorreo.com/bizkaia/',              'color': '#0055aa'},
-{'id': 'politica',   'name': 'Política',       'url': 'https://www.elcorreo.com/politica/',             'color': '#cc2200'},
+    {'id': 'politica',   'name': 'Política',       'url': 'https://www.elcorreo.com/politica/',             'color': '#cc2200'},
     {'id': 'mundo',      'name': 'Mundo',          'url': 'https://www.elcorreo.com/internacional/',        'color': '#cc5500'},
     {'id': 'economia',   'name': 'Economía',       'url': 'https://www.elcorreo.com/economia/',             'color': '#007744'},
     {'id': 'deportes',   'name': 'Deportes',       'url': 'https://www.elcorreo.com/deportes/',             'color': '#006633'},
@@ -27,6 +26,7 @@ SECTIONS = [
     {'id': 'cultura',    'name': 'Cultura',        'url': 'https://www.elcorreo.com/culturas/',             'color': '#884400'},
     {'id': 'vivir',      'name': 'Vivir',          'url': 'https://www.elcorreo.com/vivir/',                'color': '#aa6600'},
     {'id': 'gente',      'name': 'Gente & Estilo', 'url': 'https://www.elcorreo.com/gente-estilo/',         'color': '#aa0077'},
+    {'id': 'xlsemanal',  'name': 'XL Semanal',     'url': 'https://www.elcorreo.com/xlsemanal/',            'color': '#444444'},
 ]
 
 HEADERS = {
@@ -43,20 +43,24 @@ HEADERS = {
 }
 
 
+def _normalizar_url(url):
+    """Convierte URLs relativas de protocolo (//...) a https://"""
+    if url.startswith('//'):
+        return 'https:' + url
+    return url
+
 def _get_image(art_tag):
     """Intenta extraer la URL de imagen de un <article> con múltiples estrategias."""
-    # Prioridad: picture > img con data-src > img con src
     for attr in ('data-src', 'data-lazy-src', 'data-original', 'src'):
         img = art_tag.find('img', attrs={attr: True})
         if img:
-            url = img[attr].strip()
+            url = _normalizar_url(img[attr].strip())
             if url and not url.endswith('.gif') and 'placeholder' not in url and url.startswith('http'):
                 return url
-    # Fallback: buscar cualquier img
     img = art_tag.find('img')
     if img:
         for attr in ('data-src', 'data-lazy-src', 'src'):
-            url = img.get(attr, '').strip()
+            url = _normalizar_url(img.get(attr, '').strip())
             if url and url.startswith('http') and not url.endswith('.gif'):
                 return url
     return ''
@@ -77,7 +81,6 @@ def scrape_section(section):
     seen_urls = set()
 
     for art in soup.find_all('article'):
-        # --- Título ---
         h_tag = art.find(['h1', 'h2', 'h3', 'h4'])
         if not h_tag:
             continue
@@ -89,7 +92,6 @@ def scrape_section(section):
         if title in seen_titles:
             continue
 
-        # --- URL ---
         a_tag = h_tag.find('a') or art.find('a', href=True)
         url = ''
         if a_tag and a_tag.get('href'):
@@ -98,21 +100,18 @@ def scrape_section(section):
                 url = href
             elif href.startswith('/'):
                 url = 'https://www.elcorreo.com' + href
-        # Eliminar parámetros de query para evitar tracking
         if url and '?' in url:
             url = url.split('?')[0]
         if url in seen_urls and url:
             continue
 
-        # --- Resumen ---
         p_tag = art.find('p')
         summary = p_tag.get_text(strip=True) if p_tag else ''
         if summary and AD_REGEX.search(summary):
             continue
         if len(summary) > 220:
-            summary = summary[:217] + '…'
+            summary = summary[:217] + '...'
 
-        # --- Imagen ---
         img_url = _get_image(art)
 
         seen_titles.add(title)
@@ -139,7 +138,6 @@ def get_all_sections():
         print(f"[scraper]   -> {len(arts)} articulos")
         return s, arts
 
-    # Lanzar todas las secciones a la vez (máx 6 hilos simultáneos)
     results_map = {}
     with ThreadPoolExecutor(max_workers=6) as executor:
         futures = {executor.submit(fetch, s): s for s in SECTIONS}
@@ -147,7 +145,6 @@ def get_all_sections():
             s, arts = future.result()
             results_map[s['id']] = arts
 
-    # Devolver en el orden original
     return [
         {
             'id':    s['id'],
@@ -160,10 +157,8 @@ def get_all_sections():
 
 
 if __name__ == '__main__':
-    # Test rápido
-    import json
     data = get_all_sections()
     total = sum(len(s['arts']) for s in data)
-    print(f"\nTotal artículos: {total}")
+    print(f"\nTotal articulos: {total}")
     for s in data:
-        print(f"  {s['name']}: {len(s['arts'])} artículos")
+        print(f"  {s['name']}: {len(s['arts'])} articulos")

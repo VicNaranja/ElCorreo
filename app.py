@@ -75,6 +75,20 @@ def index():
     return render_template('index.html')
 
 
+print(">>> APP CARGADO - debug route activo <<<")
+
+@app.route('/ping')
+def ping():
+    return 'pong'
+
+@app.route('/debug/xlsemanal')
+def debug_xlsemanal():
+    from scraper import scrape_section
+    s = {'id': 'xlsemanal', 'name': 'XL Semanal', 'url': 'https://www.elcorreo.com/xlsemanal/', 'color': '#444444'}
+    arts = scrape_section(s)
+    return jsonify({'total': len(arts), 'arts': arts[:3]})
+
+
 @app.route('/api/noticias')
 def noticias():
     """Devuelve todas las secciones con sus artículos en JSON."""
